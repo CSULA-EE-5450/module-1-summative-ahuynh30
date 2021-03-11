@@ -25,7 +25,7 @@ class AsyncSlapjackGameDB(object):
     async def add_game(self, num_players: int, owner: str,
                        num_decks: int = 2) -> Tuple[str, str, str]:
         """
-        Asks the database to create a new game.
+        Asks the datab ase to create a new game.
 
         :param num_players: number of players
         :param owner: username of the owner of the game

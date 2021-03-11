@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Path, status, Query, Depends
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from slapjack_db import AsyncSlapjackGameDB, Slapjack
 from user_db import UserDB
+from asyncio_mqtt import Client, MqttError
 
 USER_DB = UserDB()
 SLAPJACK_DB = AsyncSlapjackGameDB(USER_DB)
@@ -30,8 +31,7 @@ async def get_game(game_id: str) -> Slapjack:
 async def home():
     return {"message": "Welcome to Slapjack!"}
 
-
-@app.post('/user/create')
+@app.post
 async def create_user(username: str):
     if username is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -43,7 +43,6 @@ async def create_user(username: str):
                 'password': password}
 
 
-@app.get('/game/create/{num_players}', status_code=status.HTTP_201_CREATED)
 async def create_game(num_players: int = Path(..., gt=0, description='the number of players'),
                       num_decks: Optional[int] = Query(2, description='the number of decks to use'),
                       credentials: HTTPBasicCredentials = Depends(security)):

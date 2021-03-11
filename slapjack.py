@@ -101,22 +101,22 @@ class Slapjack(object):
         :return: player is done with their turn
         """
         player_input = 'g'
-        while player_input not in ('s', 'd', 'a'):
+        while player_input not in ('s', 'd'):
             player_input = input(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_INST']} ")
             if player_input == 's':
                 # slaps function
-                print(f"Player 0: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_SLAP']}")
-                self.round_winner(0)
+                print(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_SLAP']}")
+                self.round_winner(player_idx)
                 if len(self._player_stacks[player_idx]) <= 0:
                     return True
                 return False
-            elif player_input == 'a':
-                # slaps function
-                print(f"Player 1: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_SLAP']}")
-                self.round_winner(1)
-                if len(self._player_stacks[player_idx]) <= 0:
-                    return True
-                return False
+            # elif player_input == 'a':
+            #     # slaps function
+            #     print(f"Player 1: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_SLAP']}")
+            #     self.round_winner(1)
+            #     if len(self._player_stacks[player_idx]) <= 0:
+            #         return True
+            #     return False
             elif player_input == 'd':
                 drawn_card = self.player_draw_card(player_idx)
                 print(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_DRAW']}{drawn_card}")
@@ -233,6 +233,10 @@ class Slapjack(object):
 
 
 def main():
+    # print(u"\u2660")
+    # print(u"\u2665")
+    # print(u"\u2663")
+    # print(u"\u2666")
     play_another = True
     while play_another:
         print(f"{SLAPJACK_INSTRUCTIONS['English']['WELCOME']}")
@@ -249,7 +253,4 @@ def main():
 if __name__ == '__main__':
     # logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=print)
     main()
-# print(u"\u2660")
-# print(u"\u2665")
-# print(u"\u2663")
-# print(u"\u2666")
+
