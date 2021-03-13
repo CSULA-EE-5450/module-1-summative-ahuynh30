@@ -18,6 +18,15 @@ SLAPJACK_INSTRUCTIONS = {
 
 
 @dataclass
+class Slapjack_stack_info:
+    main_stack:
+    player_stacks: List[List[Card]]
+    player_stack_size: List[int]
+    current_card: Card
+    num_players: int
+
+
+@dataclass
 class Card(object):
     suit: str
     number: int
@@ -62,9 +71,15 @@ class Slapjack(object):
         self._main_stack = self._create_stack(num_decks)
         self._player_stacks = [[] for _ in range(self._num_players)]
         self._player_dones = [False for _ in range(self._num_players)]
+        self._player_stack_sizes = [len(self._player_stacks[_] for _ in range(self._num_players)]
         self._current_turn = 0
         self._previous_card = " "
         self._current_card = " "
+        self.slapjack_info = Slapjack_stack_info(self._main_stack, 
+                                                 self._player_stacks, 
+                                                 self._player_stack_sizes, 
+                                                 self._current_card, 
+                                                 self._num_players)
 
     def _create_stack(self, num_decks: int) -> List[Card]:
         """
@@ -215,21 +230,9 @@ class Slapjack(object):
         print(f"Final winners: {self.compute_winners()}")
         return
 
-    @property
-    def num_players(self):
-        return self._num_players
+    def slapjack_stack_info(self)
+        return self.slapjack_info
 
-    @property
-    def current_card(self):
-        return self._current_card
-
-    @property
-    def main_stack(self):
-        return self._main_stack
-
-    @property
-    def player_stacks(self):
-        return self._player_stacks
 
 
 def main():
