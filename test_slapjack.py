@@ -11,11 +11,10 @@ class TestSlapjack(TestCase):
         self.assertEqual(len(self.slapjack._create_stack(2)), 2 * 52)
         self.assertEqual(len(self.slapjack._create_stack(3)), 3 * 52)
 
-    @mock.patch('slapjack.input', create=True)
-
     def test__draw_card(self):
-        self.initial_deal()
+        self.slapjack.initial_deal()
         drawn_card = self.slapjack.player_draw_card(0)
         self.assertLess(drawn_card.number, 14)
         self.assertGreater(drawn_card.number, 0)
+
 

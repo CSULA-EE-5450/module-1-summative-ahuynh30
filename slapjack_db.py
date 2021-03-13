@@ -3,7 +3,6 @@ from typing import List, Tuple, Dict, Union
 from slapjack import Slapjack
 from user_db import UserDB
 from dataclasses import dataclass
-from fastapi import HTTPException, status
 import asyncio
 
 
@@ -22,18 +21,20 @@ class AsyncSlapjackGameDB(object):
         self._QUERY_TIME: float = 0.05
         self._user_db = user_db  # pointer to the Web API's UserDB
 
-    async def add_game(self, num_players: int, owner: str,
+    async def add_game(self, game_room: str,
+                       num_players: int, owner: str,
                        num_decks: int = 2) -> Tuple[str, str, str]:
         """
-        Asks the datab ase to create a new game.
+        Asks the database to create a new game.
 
+        :param game_room:
         :param num_players: number of players
         :param owner: username of the owner of the game
         :param num_decks: number of decks to use, default 2
         :return: the UUID (universally-unique ID) of the game, termination password, and owner username
         """
         await asyncio.sleep(self._QUERY_TIME)  # simulate query time
-        game_uuid = str(uuid4())
+        game_uuid = game_room
         game_term_password = str(uuid4())
         self._current_games[game_uuid] = Slapjack(num_decks, num_players)
         self._current_games_info[game_uuid] = SlapjackGameInfo(
@@ -71,22 +72,17 @@ class AsyncSlapjackGameDB(object):
         await asyncio.sleep(self._QUERY_TIME)  # simulate query time
         return self._current_games.get(game_id, None)
 
-    async def del_game(self, game_id: str, term_pass: str, attempter: str) -> bool:
+    async def del_game(self, game_id: str, term_pass: str, user_attempt: str) -> bool:
         """
         Asks the database to terminate a specific game.
 
         :param game_id: the UUID of the specific game
         :param term_pass: the termination password for the game
-        :param attempter: the username of the person attempting the delete
+        :param user_attempt: the username of the person attempting the delete
         :return: False or exception if not found, True if success
         """
-        try:
-            await asyncio.sleep(self._QUERY_TIME)  # simulate query time
-            if self._current_games_info[game_id].termination_password == term_pass \
-                    and self._current_games_info[game_id].owner == attempter:
-                del self._current_games[game_id]
-                return True
-            else:
-                raise HTTPException(status.HTTP_401_UNAUTHORIZED, "user not authorized")
-        except KeyError:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "game_id not found")
+        await asyncio.sleep(self._QUERY_TIME)  # simulate query time
+        if self._current_games_info[game_id].termination_password == term_pass \
+                and self._current_games_info[game_id].owner == user_attempt:
+            del self._current_games[game_id]
+            return True
