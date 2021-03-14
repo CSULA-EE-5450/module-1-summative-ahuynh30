@@ -15,7 +15,7 @@ async def get_game(client, message) -> Slapjack:
     :param message: the uuid in str of the game to retrieve which is got from message
     """
 
-    message_split = message.split(",")
+    message_split = message.split(", ")
     game_room = message_split[0]
     the_game = await SLAPJACK_DB.get_game(game_room)
     if the_game is None:
@@ -37,7 +37,7 @@ async def create_game(client, message):
     :param message: the message command string
     :return:
     """
-    message_split = message.split(',')
+    message_split = message.split(', ')
     game_room = message_split[0]
     num_players = message_split[1]
     num_decks = message_split[2]
@@ -67,9 +67,48 @@ async def init_game(client, message):
     :param message:
     :return:
     """
-    the_game = await get_game(client, message)
+    game_room = message
+    the_game = await get_game(client, game_room)
     the_game.initial_deal()
-    await client.publish("game/home/message", "Game started", qos=1)
+    await client.publish("game_room/" + str(game_room), "Game started", qos=1)
+    await show_stack(client, message)
+
+
+async def show_stack(client, message):
+
+    message_split = message.split(", ")
+    game_room = message_split[0]
+    the_game = await get_game(client, game_room)
+    game_info = await SLAPJACK_DB.get_game_info(game_room)
+    player_list = game_info.players
+    player_stacks = the_game.get_player_stacks()
+    main_stack = the_game.get_main_stack()
+    current_card = the_game.get_current_card()
+    previous_card = the_game.get_previous_card()
+    await client.publish(("game_room/" + str(game_room) + "/Main_stack"), str(main_stack), qos=1)
+    await client.publish(("game_room/" + str(game_room) + "/previous_card"), str(previous_card), qos=1)
+    await client.publish(("game_room/" + str(game_room) + "/current_card"), str(current_card), qos=1)
+    for player in player_list:
+        player_idx = await get_player_idx(game_room, player)
+        await client.publish(("game_room/" + str(game_room) +
+                              "/player_list/" + str(player) +
+                              "/stack"), str(player_stacks[player_idx]), qos=1)
+        await client.publish(("game_room/" + str(game_room) +
+                              "/player_list/" + str(player) +
+                              "/cards_left"), str(len(player_stacks[player_idx])), qos=1)
+
+
+async def get_player_idx(game_room, username):
+    """
+    Gets the player index of a particular user within a game.
+    :param game_room: Room number
+    :param username: The target username
+    :return: The index of the user within the game room number
+    """
+    game_info = await SLAPJACK_DB.get_game_info(game_room)
+    player_list = game_info.players
+    player_idx = player_list.index(username)
+    return player_idx
 
 
 async def create_user(client, message):
@@ -104,7 +143,7 @@ async def add_player_to_game(client, message):
     :param message: the message command string
     :return: sending player added to game
     """
-    message_split = message.split(",")
+    message_split = message.split(", ")
     game_room = message_split[0]
     user_adding = message_split[1]
     try:
@@ -134,49 +173,64 @@ async def add_player_to_game(client, message):
 async def player_action(client, message):
     """
     player slaps the card or draws a card down
-    message layout, "game_room, player_name, player_idx, action"
+    message layout, "game_room, player_name, action"
     actions are "slap" or "draw"
     :param client:
     :param message:
     :return:
     """
-    message_split = message.split(",")
+    message_split = message.split(", ")
     game_room = message_split[0]
     player_name = message_split[1]
-    player_idx = int(message_split[2])
-    action = message_split[3]
+    player_idx = await get_player_idx(game_room, player_name)
+    action = message_split[2]
+    the_game = await get_game(client, game_room)
     game_info = await SLAPJACK_DB.get_game_info(game_room)
-    if action == " slap":
-        if player_name in game_info.players:
-            the_game = await get_game(client, message)
-            if the_game.round_winner(player_idx):
-                await client.publish(("game_room/" + str(game_room) +
-                                      "/player_list/" + str(player_name) +
-                                      "/action"), "SLAPJACK! take the pile.", qos=1)
-            else:
-                await client.publish(("game_room/" + str(game_room) +
-                                      "/player_list/" + str(player_name) +
-                                      "/action"), "Can't slap that, lose 2 cards.", qos=1)
-
-    elif action == " draw":
-        if player_name in game_info.players:
-            the_game = await get_game(client, message)
-            drawn_card = the_game.player_draw_card(player_idx)
-            await client.publish(("game_room/" + str(game_room) +
-                                  "/player_list/" + str(player_name) +
-                                  "/action"), "Played down a " + str(drawn_card), qos=1)
+    player_stack = the_game.get_player_stacks()
+    if len(player_stack[player_idx]) <= 0:
+        await client.publish(("game_room/" + str(game_room) +
+                              "/player_list/" + str(player_name) +
+                              "/action"), "No more cards you lose!.", qos=1)
     else:
-        await client.publish(("game_room/" + str(game_room) + "/error"),
-                             "ERROR: Invalid Action!", qos=1)
-        raise MqttError("ERROR: Invalid Action!")
+        if action == "slap":
+            if len(player_stack[player_idx]) <= 1:
+                await client.publish(("game_room/" + str(game_room) +
+                                      "/player_list/" + str(player_name) +
+                                      "/action"), "No more cards you lose!.", qos=1)
+                the_game = await get_game(client, message)
+                the_game.player_draw_card(player_idx, True)
+            else:
+                if player_name in game_info.players:
+                    the_game = await get_game(client, message)
+                    if the_game.round_winner(player_idx):
+                        await client.publish(("game_room/" + str(game_room) +
+                                              "/player_list/" + str(player_name) +
+                                              "/action"), "SLAPJACK! take the pile.", qos=1)
+                    else:
+                        await client.publish(("game_room/" + str(game_room) +
+                                              "/player_list/" + str(player_name) +
+                                              "/action"), "Can't slap that, lose 2 cards.", qos=1)
+
+        elif action == "draw":
+            if player_name in game_info.players:
+                the_game = await get_game(client, message)
+                drawn_card = the_game.player_draw_card(player_idx, False)
+                await client.publish(("game_room/" + str(game_room) +
+                                      "/player_list/" + str(player_name) +
+                                      "/action"), "Played down a " + str(drawn_card), qos=1)
+        else:
+            await client.publish(("game_room/" + str(game_room) + "/error"),
+                                 "ERROR: Invalid Action!", qos=1)
+            raise MqttError("ERROR: Invalid Action!")
+        await show_stack(client, message)
 
 
 async def get_winner(client, message):
-    message_split = message.split(",")
+    message_split = message.split(", ")
     game_room = message_split[0]
     the_game = await get_game(client, message)
     winner_list = the_game.compute_winners()
-    for idx in range(0, len(winner_list) + 1):
+    for idx in range(len(winner_list)):
         if winner_list[idx] == "WIN":
             await client.publish(("game_room/" + str(game_room) +
                                   "/winner"), "Player " + str(idx) + " is the Winner", qos=1)
@@ -191,7 +245,7 @@ async def message_handler():
         async with client.filtered_messages("game_commands") as messages:
             async for message_mqtt in messages:
                 message = message_mqtt.payload.decode()
-                message_split = message.split(":")
+                message_split = message.split(": ")
                 message_command = message_split[0]
                 message_param = message_split[1]
                 if message_command == "welcome":

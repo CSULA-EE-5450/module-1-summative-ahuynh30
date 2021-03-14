@@ -18,15 +18,6 @@ SLAPJACK_INSTRUCTIONS = {
 
 
 @dataclass
-class Slapjack_stack_info:
-    main_stack:
-    player_stacks: List[List[Card]]
-    player_stack_size: List[int]
-    current_card: Card
-    num_players: int
-
-
-@dataclass
 class Card(object):
     suit: str
     number: int
@@ -59,6 +50,7 @@ class Slapjack(object):
         :param num_decks: number of decks in this game; defaults to 1 deck
         :param num_players: number of players in this game; defaults to 1 player
         """
+        self.num_players = num_players
         self._LOWEST_CARD = 1
         self._HIGHEST_CARD = 13
         spades = u"\u2660"
@@ -71,15 +63,26 @@ class Slapjack(object):
         self._main_stack = self._create_stack(num_decks)
         self._player_stacks = [[] for _ in range(self._num_players)]
         self._player_dones = [False for _ in range(self._num_players)]
-        self._player_stack_sizes = [len(self._player_stacks[_] for _ in range(self._num_players)]
+        # self._player_stack_sizes = self._stack_size(num_players)
         self._current_turn = 0
         self._previous_card = " "
         self._current_card = " "
-        self.slapjack_info = Slapjack_stack_info(self._main_stack, 
-                                                 self._player_stacks, 
-                                                 self._player_stack_sizes, 
-                                                 self._current_card, 
-                                                 self._num_players)
+
+    # def _stack_size(self, num_players: int) -> List[int]:
+    #     """
+    #     lens the player stacks
+    #     :param num_players:
+    #     :return: stack sizes in order
+    #     """
+    #     size = []
+    #     test = []
+    #     try:
+    #         for i in range(num_players):
+    #             temp = len(self._player_stacks[i])
+    #             size.append(temp)
+    #         return size
+    #     except IndexError:
+    #         return test
 
     def _create_stack(self, num_decks: int) -> List[Card]:
         """
@@ -96,7 +99,19 @@ class Slapjack(object):
         random.shuffle(the_list)
         return the_list
 
-    def player_draw_card(self, player_idx: int) -> Card:
+    def get_player_stacks(self):
+        return self._player_stacks
+
+    def get_main_stack(self):
+        return self._main_stack
+
+    def get_current_card(self):
+        return self._current_card
+
+    def get_previous_card(self):
+        return self._previous_card
+
+    def player_draw_card(self, player_idx: int, silent: bool) -> Card:
         """
         Draw a card from the players stack to play.
 
@@ -104,8 +119,9 @@ class Slapjack(object):
         """
         card_played = self._player_stacks[player_idx].pop()
         self._main_stack.append(card_played)
-        self._previous_card = self._current_card
-        self._current_card = card_played
+        if not silent:
+            self._previous_card = self._current_card
+            self._current_card = card_played
         return card_played
 
     def _player_choice(self, player_idx: int) -> bool:
@@ -133,7 +149,7 @@ class Slapjack(object):
                     return True
                 return False
             elif player_input == 'd':
-                drawn_card = self.player_draw_card(player_idx)
+                drawn_card = self.player_draw_card(player_idx, False)
                 print(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_DRAW']}{drawn_card}")
                 if len(self._player_stacks[player_idx]) <= 0:
                     return True
@@ -147,9 +163,9 @@ class Slapjack(object):
         if self._current_card != " ":
             if self._current_card.number == 11:
                 return True
-        elif (self._current_card != " ") & (self._previous_card != " "):
-            if self._current_card.number == self._previous_card.number:
-                return True
+            if self._previous_card != " ":
+                if self._current_card.number == self._previous_card.number:
+                    return True
         else:
             return False
 
@@ -189,7 +205,7 @@ class Slapjack(object):
 
     def compute_winners(self) -> List[str]:
 
-        return [self._compute_winners(player) for player in range(0, self.num_players)]
+        return [self._compute_winners(player) for player in range(0, self._num_players)]
 
     def deal_cards(self, player_idx: int):
         card = self._main_stack.pop()
@@ -229,10 +245,6 @@ class Slapjack(object):
 
         print(f"Final winners: {self.compute_winners()}")
         return
-
-    def slapjack_stack_info(self)
-        return self.slapjack_info
-
 
 
 def main():
