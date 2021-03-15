@@ -1,16 +1,74 @@
 import pytest
+from asyncio_mqtt import Client
 import mqtt_server
-from asyncio_mqtt import Client, MqttError
 
 
-def test_create_game(mqtt_server):
-    async with Client("localhost") as client:
-        message1 = "123, 2, 1, anthony "
-        message_split = message1.split(", ")
-        game_room = message_split[0]
-        mqtt_server.create_game(client, message1)
-        await client.subscribe("#")
-        async with client.filtered_messages("game_room/" + str(game_room) + "/create_success") as messages:
-            async for message_mqtt in messages:
-                message = message_mqtt.payload.decode()
-                assert message == "True"
+@pytest.mark.asyncio
+async def test_create_game():
+    client = Client("localhost")
+    message1 = "123, 2, 1, anthony"
+    testing = await mqtt_server.create_game(client, message1, test=True)
+    term_pass_location = testing[0]
+    game_location = testing[1]
+    owner_location = testing[2]
+    assert term_pass_location == "game_room/123/term_pass"
+    assert game_location == "game_room/123/owner"
+    assert owner_location == "game_room/123/player_list/anthony"
+
+
+@pytest.mark.asyncio
+async def test_create_user():
+    client = Client("localhost")
+    message1 = None
+    testing = await mqtt_server.create_user(client, message1, test=True)
+    assert testing == "ERROR: Username not entered for found!"
+    message1 = "anthony"
+    testing = await mqtt_server.create_user(client, message1, test=True)
+    username = testing[0]
+    password = testing[1]
+    assert username == "user_base/anthony/username"
+    assert password == "user_base/anthony/password"
+
+
+@pytest.mark.asyncio
+async def test_add_player():
+    client = Client("localhost")
+    message1 = "123,, ggez"
+    await mqtt_server.create_game(client, "123, 2, 1, anthony", test=True)
+    testing = await mqtt_server.add_player_to_game(client, message1, test=True)
+    assert testing == "ERROR: Please enter message in correct format!"
+    message1 = "123, anthony"
+    testing = await mqtt_server.add_player_to_game(client, message1, test=True)
+    assert testing == "ERROR: Player already added!"
+    message1 = "123, shiore"
+    testing = await mqtt_server.add_player_to_game(client, message1, test=True)
+    assert testing == "game_room/123/player_list/shiore"
+
+
+@pytest.mark.asyncio
+async def test_show_stack():
+    client = Client("localhost")
+    message1 = "123, yes"
+    await mqtt_server.create_game(client, "123, 2, 1, anthony", test=True)
+    await mqtt_server.add_player_to_game(client, "123, shiore", test=True)
+    await mqtt_server.init_game(client, "123", test=True)
+    testing = await mqtt_server.show_stack(client, message1, test=True)
+    assert testing[0] == "game_room/123/player_list/anthony/stack"
+    assert testing[1] == "game_room/123/player_list/anthony/cards_left"
+    assert testing[2] == "game_room/123/player_list/shiore/stack"
+    assert testing[3] == "game_room/123/player_list/shiore/cards_left"
+
+
+@pytest.mark.asyncio
+async def test_player_action():
+    client = Client("localhost")
+    message1 = "123, shiore, slap"  # should be invalid move
+    await mqtt_server.create_game(client, "123, 2, 1, anthony", test=True)
+    await mqtt_server.add_player_to_game(client, "123, shiore", test=True)
+    await mqtt_server.init_game(client, "123", test=True)
+    testing = await mqtt_server.player_action(client, message1, test=True)
+    assert testing == "Can't slap that, lose 2 cards."
+
+
+if __name__ == '__main__':
+    pytest.main()

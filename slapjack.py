@@ -68,22 +68,6 @@ class Slapjack(object):
         self._previous_card = " "
         self._current_card = " "
 
-    # def _stack_size(self, num_players: int) -> List[int]:
-    #     """
-    #     lens the player stacks
-    #     :param num_players:
-    #     :return: stack sizes in order
-    #     """
-    #     size = []
-    #     test = []
-    #     try:
-    #         for i in range(num_players):
-    #             temp = len(self._player_stacks[i])
-    #             size.append(temp)
-    #         return size
-    #     except IndexError:
-    #         return test
-
     def _create_stack(self, num_decks: int) -> List[Card]:
         """
         Creates the stack of the cards (52 * num_decks), shuffled.
@@ -114,6 +98,7 @@ class Slapjack(object):
     def player_draw_card(self, player_idx: int, silent: bool) -> Card:
         """
         Draw a card from the players stack to play.
+        and places their drawn card in the main stack
 
         :return: Card object
         """
@@ -184,8 +169,9 @@ class Slapjack(object):
             self._previous_card = " "
             return True
         else:
-            punish = self._player_stacks[player_idx].pop()
-            self._main_stack.append(punish)
+            if len(self._player_stacks[player_idx]) > 1:
+                punish = self._player_stacks[player_idx].pop()
+                self._main_stack.append(punish)
             punish = self._player_stacks[player_idx].pop()
             self._main_stack.append(punish)
             print("Can't slap that, lose 2 cards")

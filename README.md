@@ -1,10 +1,10 @@
 # EE 5450 Module 1 Summative
-Add your text here.  If you would like a Markdown cheatsheet: https://www.markdownguide.org/cheat-sheet/
+Add your text here.  If you would like a 
+Markdown cheatsheet: https://www.markdownguide.org/cheat-sheet/
 
 # Slapjack in MQTT
-rules to Slapjack:
-deal cards to all players
-players place cards in order from 0-#
+Rules to Slapjack: Choose the number of players and decks 
+you would like to use to play. Then deal cards to all players place cards in order from 0-#
 slap only pairs or jacks
 if slapping wrong card
 then put 2 card more cards in the pile

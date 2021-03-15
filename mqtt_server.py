@@ -29,22 +29,25 @@ async def home(client):
     await client.publish("game/home/message", "Welcome to Slapjack!", qos=1)
 
 
-async def create_game(client, message):
+async def create_game(client, message, test: bool = False):
     """
     Create game using MQTT inputs
     Enter parameters "game_room, num_players, num_decks, owner name"
+    :param test:
     :param client: the MQTT client
     :param message: the message command string
     :return:
     """
+    test_str = []
     message_split = message.split(', ')
     game_room = message_split[0]
     num_players = message_split[1]
     num_decks = message_split[2]
     owner_user = message_split[3]
-    await client.publish(("game_room/" + str(game_room) + "/create_success"), "True", qos=1)
-    await client.publish(("game_room/" + str(game_room) + "/num_players"), num_players, qos=1)
-    await client.publish(("game_room/" + str(game_room) + "/num_decks"), num_decks, qos=1)
+    if not test:
+        await client.publish(("game_room/" + str(game_room) + "/create_success"), "True", qos=1)
+        await client.publish(("game_room/" + str(game_room) + "/num_players"), num_players, qos=1)
+        await client.publish(("game_room/" + str(game_room) + "/num_decks"), num_decks, qos=1)
     game_id, term_pass, owner = await SLAPJACK_DB.add_game(game_room=game_room,
                                                            num_players=int(num_players),
                                                            num_decks=int(num_decks),
@@ -53,16 +56,23 @@ async def create_game(client, message):
     player_list = game_info.players
     player_list.append(owner)
     player_idx = player_list.index(owner)
-    await client.publish(("game_room/" + str(game_room) + "/term_pass"), term_pass, qos=1)
-    await client.publish(("game_room/" + str(game_room) + "/owner"), owner, qos=1)
-    await client.publish(("game_room/" + str(game_room) +
-                          "/player_list/" + str(owner)),
-                         "player_idx: " + str(player_idx), qos=1)
+    if not test:
+        await client.publish(("game_room/" + str(game_room) + "/term_pass"), term_pass, qos=1)
+        await client.publish(("game_room/" + str(game_room) + "/owner"), owner, qos=1)
+        await client.publish(("game_room/" + str(game_room) +
+                              "/player_list/" + str(owner)),
+                             "player_idx: " + str(player_idx), qos=1)
+    else:
+        test_str.append("game_room/" + str(game_room) + "/term_pass")
+        test_str.append("game_room/" + str(game_room) + "/owner")
+        test_str.append("game_room/" + str(game_room) + "/player_list/" + str(owner))
+        return test_str
 
 
-async def init_game(client, message):
+async def init_game(client, message, test: bool = False):
     """
     FORMAT "game_room"
+    :param test:
     :param client:
     :param message:
     :return:
@@ -70,12 +80,13 @@ async def init_game(client, message):
     game_room = message
     the_game = await get_game(client, game_room)
     the_game.initial_deal()
-    await client.publish("game_room/" + str(game_room), "Game started", qos=1)
-    await show_stack(client, message)
+    if not test:
+        await client.publish("game_room/" + str(game_room), "Game started", qos=1)
+        await show_stack(client, message)
 
 
-async def show_stack(client, message):
-
+async def show_stack(client, message, test: bool = False):
+    test_str = []
     message_split = message.split(", ")
     game_room = message_split[0]
     the_game = await get_game(client, game_room)
@@ -85,17 +96,27 @@ async def show_stack(client, message):
     main_stack = the_game.get_main_stack()
     current_card = the_game.get_current_card()
     previous_card = the_game.get_previous_card()
-    await client.publish(("game_room/" + str(game_room) + "/Main_stack"), str(main_stack), qos=1)
-    await client.publish(("game_room/" + str(game_room) + "/previous_card"), str(previous_card), qos=1)
-    await client.publish(("game_room/" + str(game_room) + "/current_card"), str(current_card), qos=1)
+    if not test:
+        await client.publish(("game_room/" + str(game_room) + "/Main_stack"), str(main_stack), qos=1)
+        await client.publish(("game_room/" + str(game_room) + "/previous_card"), str(previous_card), qos=1)
+        await client.publish(("game_room/" + str(game_room) + "/current_card"), str(current_card), qos=1)
     for player in player_list:
         player_idx = await get_player_idx(game_room, player)
-        await client.publish(("game_room/" + str(game_room) +
-                              "/player_list/" + str(player) +
-                              "/stack"), str(player_stacks[player_idx]), qos=1)
-        await client.publish(("game_room/" + str(game_room) +
-                              "/player_list/" + str(player) +
-                              "/cards_left"), str(len(player_stacks[player_idx])), qos=1)
+        if not test:
+            await client.publish(("game_room/" + str(game_room) +
+                                  "/player_list/" + str(player) +
+                                  "/stack"), str(player_stacks[player_idx]), qos=1)
+            await client.publish(("game_room/" + str(game_room) +
+                                  "/player_list/" + str(player) +
+                                  "/cards_left"), str(len(player_stacks[player_idx])), qos=1)
+        else:
+            test_str.append("game_room/" + str(game_room) +
+                            "/player_list/" + str(player) +
+                            "/stack"), str(player_stacks[player_idx])
+            test_str.append("game_room/" + str(game_room) +
+                            "/player_list/" + str(player) +
+                            "/cards_left")
+    return test_str
 
 
 async def get_player_idx(game_room, username):
@@ -111,25 +132,35 @@ async def get_player_idx(game_room, username):
     return player_idx
 
 
-async def create_user(client, message):
+async def create_user(client, message, test: bool = False):
     """
     FORMAT "username"
+    :param test:
     :param client:
     :param message:
     :return:
     """
+    test_str = []
     user = message
     if user is None:
-        await client.publish("game/error",
-                             "ERROR: Username not entered for found!", qos=1)
-        raise MqttError("ERROR: Username not entered for found!")
+        if not test:
+            await client.publish("game/error",
+                                 "ERROR: Username not entered for found!", qos=1)
+            raise MqttError("ERROR: Username not entered for found!")
+        else:
+            return "ERROR: Username not entered for found!"
     else:
         username, password = UserDB.create_user(self=USER_DB, username=user)
-        await client.publish("user_base/" + str(user) + "/username", str(username), qos=1)
-        await client.publish("user_base/" + str(user) + "/password", str(password), qos=1)
+        if not test:
+            await client.publish("user_base/" + str(user) + "/username", str(username), qos=1)
+            await client.publish("user_base/" + str(user) + "/password", str(password), qos=1)
+        else:
+            test_str.append("user_base/" + str(user) + "/username")
+            test_str.append("user_base/" + str(user) + "/password")
+            return test_str
 
 
-async def add_player_to_game(client, message):
+async def add_player_to_game(client, message, test: bool = False):
     """
     Will add a player to a game that exists in the database.
     the user must publish a message of his desired username
@@ -139,6 +170,7 @@ async def add_player_to_game(client, message):
 
     Message: format is "game_id, user_adding"
     NOTICE: Must separate with comma
+    :param test:
     :param client: the MQTT client
     :param message: the message command string
     :return: sending player added to game
@@ -150,9 +182,13 @@ async def add_player_to_game(client, message):
         game_info = await SLAPJACK_DB.get_game_info(message_split[0])
         player_list = game_info.players
     except KeyError:
-        await client.publish(("game_room/" + str(game_room) + "/error"),
-                             "ERROR: Please enter message in correct format!", qos=1)
-        raise MqttError("ERROR: Please enter message in correct format!")
+        if not test:
+            await client.publish(("game_room/" + str(game_room) + "/error"),
+                                 "ERROR: Please enter message in correct format!", qos=1)
+            raise MqttError("ERROR: Please enter message in correct format!")
+        else:
+            return "ERROR: Please enter message in correct format!"
+
     if len(player_list) == game_info.num_players:
         await client.publish(("game_room/" + str(game_room) + "/error"),
                              "ERROR: Room is full. Max players capped!", qos=1)
@@ -161,20 +197,27 @@ async def add_player_to_game(client, message):
         if user_adding not in player_list:
             player_list.append(user_adding)
             player_idx = player_list.index(user_adding)
-            await client.publish(("game_room/" + str(game_room) +
-                                  "/player_list/" + str(user_adding)),
-                                 "player_idx: " + str(player_idx), qos=1)
+            if not test:
+                await client.publish(("game_room/" + str(game_room) +
+                                      "/player_list/" + str(user_adding)),
+                                     "player_idx: " + str(player_idx), qos=1)
+            else:
+                return "game_room/" + str(game_room) + "/player_list/" + str(user_adding)
         else:
-            await client.publish(("game_room/" + str(game_room) + "/error"),
-                                 "ERROR: Player already added.!", qos=1)
-            raise MqttError("ERROR: Player already added.!")
+            if not test:
+                await client.publish(("game_room/" + str(game_room) + "/error"),
+                                     "ERROR: Player already added!", qos=1)
+                raise MqttError("ERROR: Player already added!")
+            else:
+                return "ERROR: Player already added!"
 
 
-async def player_action(client, message):
+async def player_action(client, message, test: bool = False):
     """
     player slaps the card or draws a card down
     message layout, "game_room, player_name, action"
     actions are "slap" or "draw"
+    :param test:
     :param client:
     :param message:
     :return:
@@ -188,28 +231,34 @@ async def player_action(client, message):
     game_info = await SLAPJACK_DB.get_game_info(game_room)
     player_stack = the_game.get_player_stacks()
     if len(player_stack[player_idx]) <= 0:
-        await client.publish(("game_room/" + str(game_room) +
-                              "/player_list/" + str(player_name) +
-                              "/action"), "No more cards you lose!.", qos=1)
+        if not test:
+            await client.publish(("game_room/" + str(game_room) +
+                                  "/player_list/" + str(player_name) +
+                                  "/action"), "No more cards you lose!.", qos=1)
     else:
         if action == "slap":
             if len(player_stack[player_idx]) <= 1:
-                await client.publish(("game_room/" + str(game_room) +
-                                      "/player_list/" + str(player_name) +
-                                      "/action"), "No more cards you lose!.", qos=1)
+                if not test:
+                    await client.publish(("game_room/" + str(game_room) +
+                                          "/player_list/" + str(player_name) +
+                                          "/action"), "No more cards you lose!.", qos=1)
                 the_game = await get_game(client, message)
                 the_game.player_draw_card(player_idx, True)
             else:
                 if player_name in game_info.players:
                     the_game = await get_game(client, message)
                     if the_game.round_winner(player_idx):
-                        await client.publish(("game_room/" + str(game_room) +
-                                              "/player_list/" + str(player_name) +
-                                              "/action"), "SLAPJACK! take the pile.", qos=1)
+                        if not test:
+                            await client.publish(("game_room/" + str(game_room) +
+                                                  "/player_list/" + str(player_name) +
+                                                  "/action"), "SLAPJACK! take the pile.", qos=1)
                     else:
-                        await client.publish(("game_room/" + str(game_room) +
-                                              "/player_list/" + str(player_name) +
-                                              "/action"), "Can't slap that, lose 2 cards.", qos=1)
+                        if not test:
+                            await client.publish(("game_room/" + str(game_room) +
+                                                  "/player_list/" + str(player_name) +
+                                                  "/action"), "Can't slap that, lose 2 cards.", qos=1)
+                        else:
+                            return "Can't slap that, lose 2 cards."
 
         elif action == "draw":
             if player_name in game_info.players:
@@ -225,7 +274,7 @@ async def player_action(client, message):
         await show_stack(client, message)
 
 
-async def get_winner(client, message):
+async def get_winner(client, message, test: bool = False):
     message_split = message.split(", ")
     game_room = message_split[0]
     the_game = await get_game(client, message)
@@ -281,4 +330,5 @@ async def main():
 # Change to the "Selector" event loop
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 # Run your async application as usual
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
