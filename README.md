@@ -1,9 +1,7 @@
 # EE 5450 Module 1 Summative
 Add your text here.  If you would like a Markdown cheatsheet: https://www.markdownguide.org/cheat-sheet/
 
-# Introduction for Slapjack game
-```
-plans to do chess game
+# Slapjack in MQTT
 rules to Slapjack:
 deal cards to all players
 players place cards in order from 0-#
@@ -11,7 +9,7 @@ slap only pairs or jacks
 if slapping wrong card
 then put 2 card more cards in the pile
 if you run out of cards you lose
-```
+
 ## create_stack()
 ```
 Creates the stack of the cards (52 * num_decks), shuffled.
