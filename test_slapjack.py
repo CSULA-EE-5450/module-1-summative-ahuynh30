@@ -4,7 +4,7 @@ from slapjack import Slapjack, Card
 
 class TestSlapjack(TestCase):
     def setUp(self) -> None:
-        self.slapjack = Slapjack(1, 1)
+        self.slapjack = Slapjack(1, 2)
 
     def test__create_stack(self):
         self.assertEqual(len(self.slapjack._create_stack(1)), 52)
@@ -32,6 +32,17 @@ class TestSlapjack(TestCase):
         self.slapjack.initial_deal()
         self.assertEqual(self.slapjack._compute_winners(0), 'WIN')
 
-    @mock.patch('blackjack.input', create=True)
+    @mock.patch('slapjack.input', create=True)
     def test__player_choice(self, mocked_input: mock.Mock):
         mocked_input.side_effect = ['a', 's', 'd']
+        self.slapjack.initial_deal()
+        self.slapjack.player_draw_card(0, False)
+        self.slapjack.round_winner(0)
+        self.slapjack.round_winner(1)
+        self.assertEqual(self.slapjack._player_choice(0), False)
+        # player is not done because stack still has cards so they can still draw or slap
+        size = len(self.slapjack._player_stacks[0])
+        for card in range(size):  # make player play all the cards and lose
+            self.slapjack.player_draw_card(0, False)
+        self.assertEqual(self.slapjack._player_choice(0), True)
+        # player is done because stack is empty no more moves possible

@@ -132,29 +132,28 @@ class Slapjack(object):
         :return: player is done with their turn
         """
         player_input = 'g'
-        while player_input not in ('s', 'd'):
+        while player_input not in ('a', 's', 'd'):
             player_input = input(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_INST']} ")
             if player_input == 's':
+                if len(self._player_stacks[player_idx]) <= 0:
+                    return True
                 # slaps function
                 print(f"Player 0: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_SLAP']}")
                 self.round_winner(0)
-                if len(self._player_stacks[player_idx]) <= 0:
-                    return True
                 return False
             elif player_input == 'a':
+                if len(self._player_stacks[player_idx]) <= 0:
+                    return True
                 # slaps function
                 print(f"Player 1: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_SLAP']}")
                 self.round_winner(1)
-                if len(self._player_stacks[player_idx]) <= 0:
-                    return True
                 return False
             elif player_input == 'd':
-                drawn_card = self.player_draw_card(player_idx, False)
-                print(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_DRAW']}{drawn_card}")
                 if len(self._player_stacks[player_idx]) <= 0:
                     return True
-                else:
-                    return False
+                drawn_card = self.player_draw_card(player_idx, False)
+                print(f"Player {player_idx}: {SLAPJACK_INSTRUCTIONS['English']['PLAYER_DRAW']}{drawn_card}")
+                return False
 
     def slap_card(self) -> bool:
         """
