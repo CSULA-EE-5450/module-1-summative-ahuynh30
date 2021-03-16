@@ -275,14 +275,27 @@ async def player_action(client, message, test: bool = False):
 
 
 async def get_winner(client, message, test: bool = False):
+    """
+    Format "Game_room"
+    gets gameroom and returns the winners
+    :param client:
+    :param message:
+    :param test:
+    :return:
+    """
+    test_str = []
     message_split = message.split(", ")
     game_room = message_split[0]
     the_game = await get_game(client, message)
     winner_list = the_game.compute_winners()
     for idx in range(len(winner_list)):
         if winner_list[idx] == "WIN":
-            await client.publish(("game_room/" + str(game_room) +
-                                  "/winner"), "Player " + str(idx) + " is the Winner", qos=1)
+            if not test:
+                await client.publish(("game_room/" + str(game_room) +
+                                      "/winner"), "Player " + str(idx) + " is the Winner", qos=1)
+            else:
+                test_str.append("Player " + str(idx) + " is the Winner")
+    return test_str
 
 
 async def message_handler():

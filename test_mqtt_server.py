@@ -70,5 +70,17 @@ async def test_player_action():
     assert testing == "Can't slap that, lose 2 cards."
 
 
+@pytest.mark.asyncio
+async def test_get_winners():
+    client = Client("localhost")
+    message1 = "123"  # should be invalid move
+    await mqtt_server.create_game(client, "123, 2, 1, anthony", test=True)
+    await mqtt_server.add_player_to_game(client, "123, shiore", test=True)
+    await mqtt_server.init_game(client, "123", test=True)
+    testing = await mqtt_server.get_winner(client, message1, test=True)
+    assert testing[0] == "Player 0 is the Winner"
+    assert testing[1] == "Player 1 is the Winner"
+
+
 if __name__ == '__main__':
     pytest.main()
