@@ -10,7 +10,7 @@ SLAPJACK_DB = AsyncSlapjackGameDB(USER_DB)
 async def get_game(client, message) -> Slapjack:
     """
     Get a game from the slapjack game database, otherwise raise a 404.
-
+    FORMAT of message "game_room"
     :param client: the MQTT client
     :param message: the uuid in str of the game to retrieve which is got from message
     """
@@ -26,14 +26,14 @@ async def get_game(client, message) -> Slapjack:
 
 
 async def home(client):
-    await client.publish("game/home/message", "Welcome to Slapjack!", qos=1)
+    await client.publish("game/home/message", "Welcome to MQTT Slapjack!", qos=1)
 
 
 async def create_game(client, message, test: bool = False):
     """
     Create game using MQTT inputs
-    Enter parameters "game_room, num_players, num_decks, owner name"
-    :param test:
+    FORMAT of message "game_room, num_players, num_decks, owner name"
+    :param test: if testing with pytest will be true, default is false
     :param client: the MQTT client
     :param message: the message command string
     :return:
@@ -71,10 +71,12 @@ async def create_game(client, message, test: bool = False):
 
 async def init_game(client, message, test: bool = False):
     """
-    FORMAT "game_room"
-    :param test:
-    :param client:
-    :param message:
+    FORMAT of message "game_room"
+    starts the game for the specified game room and will
+    print the player stacks and main stack
+    :param test: if testing with pytest will be true, default is false
+    :param client: the MQTT client
+    :param message: the message command string
     :return:
     """
     game_room = message
@@ -86,6 +88,17 @@ async def init_game(client, message, test: bool = False):
 
 
 async def show_stack(client, message, test: bool = False):
+    """
+    prints the stack to display in the MQTT server for each
+    game_room whenever it is called and will update the stacks shown
+    FORMAT of message "game_room, anything after doesnt matter just needs game_room"
+    format is like this because of how show_stack is called in different functions
+    so the messages would be different except the gamer_room
+    :param client: the MQTT client
+    :param message: the message command string
+    :param test: if testing with pytest will be true, default is false
+    :return:
+    """
     test_str = []
     message_split = message.split(", ")
     game_room = message_split[0]
@@ -134,8 +147,9 @@ async def get_player_idx(game_room, username):
 
 async def create_user(client, message, test: bool = False):
     """
+    creates a user with the message name given and will create it if a username is given
     FORMAT "username"
-    :param test:
+    :param test: if testing with pytest will be true, default is false
     :param client:
     :param message:
     :return:
@@ -165,12 +179,8 @@ async def add_player_to_game(client, message, test: bool = False):
     Will add a player to a game that exists in the database.
     the user must publish a message of his desired username
     under the designated topic and message in the format below.
-
-    Topic it is under is "game_commands"
-
-    Message: format is "game_id, user_adding"
-    NOTICE: Must separate with comma
-    :param test:
+    FORMAT of message is "game_id, user_adding"
+    :param test: if testing with pytest will be true, default is false
     :param client: the MQTT client
     :param message: the message command string
     :return: sending player added to game
@@ -217,9 +227,9 @@ async def player_action(client, message, test: bool = False):
     player slaps the card or draws a card down
     message layout, "game_room, player_name, action"
     actions are "slap" or "draw"
-    :param test:
-    :param client:
-    :param message:
+    :param client: the MQTT client
+    :param message: the message command string:
+    :param test: if testing with pytest will be true, default is false
     :return:
     """
     message_split = message.split(", ")
@@ -277,10 +287,10 @@ async def player_action(client, message, test: bool = False):
 async def get_winner(client, message, test: bool = False):
     """
     Format "Game_room"
-    gets gameroom and returns the winners
-    :param client:
-    :param message:
-    :param test:
+    gets game_room and returns the winners
+    :param client: the MQTT client
+    :param message: the message command string
+    :param test: if testing with pytest will be true, default is false
     :return:
     """
     test_str = []

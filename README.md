@@ -10,26 +10,68 @@ if slapping wrong card
 then put 2 card more cards in the pile
 if you run out of cards you lose
 
-## create_stack()
+## Commands for MQTT game
 ```
-Creates the stack of the cards (52 * num_decks), shuffled.
+Game commands must alway start with "game_commands:" followed by the message string 
+game_commands: message
+they are also sent to the topic: game_commands
 
-        :param num_decks: number of decks to use
-        :return: stack of all card objects, shuffled.
+The game commands we have are:
+welcome:
+create_game:
+start_game:
+create_user:
+add_player:
+get_winner:
+player_action:
 ```
-## player_draw_card()
+### welcome: message
 ```
-draw/ play a card down
-        :return: Card object
+The welcome: message command will send the 
+command to print the Welcome to MQTT Slapjack!
 ```
-## slap_card()
+### create_game: game_room, num_decks, num_players, owner_name
 ```
-slap card if 
-2 cards seen in a row ex: 2 and 2 
-or
-jack is seen so slap
+The create_game: message command will prompt 
+the server to create a game using the parameters 
+in the message given. The parameters that it needs 
+are how many decks do you want to use, number of players, 
+and the owner of the game room.
 ```
-## round_winner()
+### start_game: game_room
 ```
-who slapped the pair or Jack gets the cards
+The start_game: message command will prompt the 
+server to start the game for the given game_room 
+in the message sent.
+```
+### create_user: username
+```
+The create_user: message command will prompt the 
+server to create the username and add them to the 
+user_base topic with their username and password
+```
+### add_player: game_room, user
+```
+The add_player: message command will prompt the 
+server to add a user to a game for the game_room 
+mentioned. The parameters given needed are game_room
+and the username of the user that you want to add.
+```
+### get_winner: game_room
+```
+The get_winner: message command will prompt the 
+server to retrieve the player that has won and 
+print the winning message in the mentioned game_room
+```
+### player_action: game_room, user, action
+```
+The player_action: message command will prompt the
+server to execute the players action they wanted to 
+do. The parameters that are needed are the game room number,
+the user that is executing the action, and what action they want.
+The actions avaiable are: slap, draw.
+If there is an invalid move being made, the game will return that 
+it was an invalid move. If the user slapped before it was possible,
+then they will be punished and lose 2 cards. If the players deck 
+ever reaches 0 they cannot make anymore moves.
 ```
